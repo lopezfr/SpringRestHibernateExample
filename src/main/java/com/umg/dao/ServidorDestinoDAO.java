@@ -33,7 +33,7 @@ public class ServidorDestinoDAO {
     //recupera solo 1 servidor con el id
     public ServidorDestino getServidorDestino(int id){
         Session session = this.sessionFactory.getCurrentSession();
-        ServidorDestino servidorDestino = (ServidorDestino) session.load(ServidorDestino.class, new Integer(id));
+        ServidorDestino servidorDestino = (ServidorDestino) session.get(ServidorDestino.class, new Integer(id));
         return servidorDestino;
     }
 }

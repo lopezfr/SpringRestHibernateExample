@@ -105,7 +105,7 @@ public class TransaccionController {
         Resultado resultado = new Resultado();
 
         //Prepara objeto para obtener datos de servidor
-        ServidorDestino servidorDestino = new ServidorDestino();
+        ServidorDestino servidorDestino;
 
         //Prepara el objeto para procesar una trx
         TrxOperada trxOperada = new TrxOperada();
