@@ -26,7 +26,7 @@ public class ServidorDestinoDAO {
     //recupera todos los servidores
     public List<ServidorDestino> getAllServidorDestino(){
         Session session = this.sessionFactory.getCurrentSession();
-        List<ServidorDestino> servidorDestinoList = session.createQuery("from ServidorDestino").list();
+        List<ServidorDestino> servidorDestinoList = session.createQuery("from servidordestino").list();
         return servidorDestinoList;
     }
 

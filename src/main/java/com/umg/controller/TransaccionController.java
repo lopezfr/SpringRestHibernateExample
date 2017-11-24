@@ -3,6 +3,7 @@ package com.umg.controller;
 import java.util.List;
 
 import com.google.gson.Gson;
+import com.umg.model.Resultado;
 import com.umg.model.Transaccion;
 import com.umg.model.Usuario;
 import com.umg.queue.EnviaMsjCola;
@@ -47,33 +48,47 @@ public class TransaccionController {
 
     //Crear una nueva transaccion enviandole un JSON
     @RequestMapping(value = "/addTransaccion", method = RequestMethod.POST, headers = "Accept=application/json")
-    public void addTransaccion(@RequestBody Transaccion transaccion) {
+    public Resultado addTransaccion(@RequestBody Transaccion transaccion) {
+
+        //Prepara objeto a devolver con resultado
+        Resultado resultado = new Resultado();
         System.out.println("Antes de grabar trx valida usuario y coins");
-        Usuario usuario = usuarioService.getUsuario(transaccion.getIdUsuario());
-        System.out.println("Usuario: " + usuario.getnombreUsuario());
-        System.out.println("Monedas: " + usuario.getCoins());
-        //Si las monedas son suficientes intenta enviar al servidor de colas
-        if (usuario.getCoins() >= transaccion.getQuantity()) {
+        try {
+            Usuario usuario = usuarioService.getUsuario(transaccion.getIdUsuario());
 
-            //Convierte el JSON Objeto a una cadena de texto para enviar a la cola
-            //Convierte Objeto a String en formato JSON
-            Gson gson = new Gson();
-            String jsonInString = gson.toJson(transaccion);
-            System.out.println("Objeto JSON convertido a texto:   " + jsonInString);
-            EnviaMsjCola enviaMsjCola = new EnviaMsjCola();
-            boolean envio = enviaMsjCola.enviaMensajeaMQ(jsonInString);
-            //Si esta OK agregamos la transaccion a la BD
-            if (envio) {
-                transaccionService.addTransaccion(transaccion);
-                //Actualiza la cantidad de monedas del usuario
-                System.out.println("Nueva cantidad de monedas: " + (usuario.getCoins() - transaccion.getQuantity()));
-                usuario.setCoins(usuario.getCoins() - transaccion.getQuantity());
-                usuarioService.updateUsuario(usuario);
+            System.out.println("Usuario: " + usuario.getnombreUsuario());
+            System.out.println("Monedas: " + usuario.getCoins());
+            //Si las monedas son suficientes intenta enviar al servidor de colas
+            if (usuario.getCoins() >= transaccion.getQuantity()) {
+
+                //Convierte el JSON Objeto a una cadena de texto para enviar a la cola
+                //Convierte Objeto a String en formato JSON
+                Gson gson = new Gson();
+                String jsonInString = gson.toJson(transaccion);
+                System.out.println("Objeto JSON convertido a texto:   " + jsonInString);
+                EnviaMsjCola enviaMsjCola = new EnviaMsjCola();
+                boolean envio = enviaMsjCola.enviaMensajeaMQ(jsonInString);
+                //Si esta OK agregamos la transaccion a la BD
+                if (envio) {
+                    transaccionService.addTransaccion(transaccion);
+                    //Actualiza la cantidad de monedas del usuario
+                    System.out.println("Nueva cantidad de monedas: " + (usuario.getCoins() - transaccion.getQuantity()));
+                    usuario.setCoins(usuario.getCoins() - transaccion.getQuantity());
+                    usuarioService.updateUsuario(usuario);
+                    resultado.setEstatusTrx("OK");
+                    resultado.setMensajeTrx("Transaccion completada");
+                }
+            } else {
+                resultado.setEstatusTrx("ERROR");
+                resultado.setMensajeTrx("Transaccion NO completada monedas insuficientes para la transaccion");
+                System.out.println("monedas insuficientes para la transaccion");
             }
-        } else {
-            System.out.println("monedas insuficientes para la transaccion");
+        } catch (Exception error) {
+            resultado.setEstatusTrx("ERROR");
+            resultado.setMensajeTrx("Transaccion NO completada Usuario no existe " +error);
+            System.out.println("usuario no existe " + error);
         }
-
+        return resultado;
     }
 
     //Actualiza una transaccion enviandole un JSON

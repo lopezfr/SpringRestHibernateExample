@@ -24,7 +24,7 @@ public class TransaccionDAO {
     //Recupera todas las transacciones hechas
     public List<Transaccion> getAllTransacciones(){
         Session session = this.sessionFactory.getCurrentSession();
-        List<Transaccion> transaccionList = session.createQuery("from Transaccion").list();
+        List<Transaccion> transaccionList = session.createQuery("from transaccion").list();
         return transaccionList;
     }
 
