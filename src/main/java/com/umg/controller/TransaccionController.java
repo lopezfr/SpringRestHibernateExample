@@ -3,11 +3,11 @@ package com.umg.controller;
 import java.util.List;
 
 import com.google.gson.Gson;
-import com.umg.model.Resultado;
-import com.umg.model.Transaccion;
-import com.umg.model.Usuario;
+import com.umg.model.*;
 import com.umg.queue.EnviaMsjCola;
+import com.umg.service.ServidorDestinoService;
 import com.umg.service.TransaccionService;
+import com.umg.service.TrxOperadaService;
 import com.umg.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +28,12 @@ public class TransaccionController {
 
     @Autowired
     UsuarioService usuarioService;
+
+    @Autowired
+    ServidorDestinoService servidorDestinoService;
+
+    @Autowired
+    TrxOperadaService trxOperadaService;
 
 
     //con requesmapping hacemos los direccionamientos de las URL
@@ -85,7 +91,43 @@ public class TransaccionController {
             }
         } catch (Exception error) {
             resultado.setEstatusTrx("ERROR");
-            resultado.setMensajeTrx("Transaccion NO completada Usuario no existe " +error);
+            resultado.setMensajeTrx("Transaccion NO completada Usuario no existe " + error);
+            System.out.println("usuario no existe " + error);
+        }
+        return resultado;
+    }
+
+    //Crear una nueva transaccion enviandole un JSON
+    @RequestMapping(value = "/processTransaccion", method = RequestMethod.POST, headers = "Accept=application/json")
+    public Resultado processTransaccion(@RequestBody Transaccion transaccion) {
+
+        //Prepara objeto a devolver con resultado
+        Resultado resultado = new Resultado();
+
+        //Prepara objeto para obtener datos de servidor
+        ServidorDestino servidorDestino = new ServidorDestino();
+
+        //Prepara el objeto para procesar una trx
+        TrxOperada trxOperada = new TrxOperada();
+
+        System.out.println("Recibiendo trx. valida");
+        try {
+            //Valida que servidor que trae el json exista en tabla de servidores
+            servidorDestino=servidorDestinoService.getServidorDestino(transaccion.getIdPlatformDestiny());
+
+            //Graba la transaccion procesada
+            //trxOperada.setIdTrxOperada(); este como es autoincrement no se envia
+            trxOperada.setIdTransaccion(transaccion.getIdTransaccion());
+            trxOperada.setServerName(servidorDestino.getServername());
+            trxOperada.setServerIp(servidorDestino.getServerip());
+            trxOperadaService.addTrxOperada(trxOperada);
+
+            resultado.setEstatusTrx("OK");
+            resultado.setMensajeTrx("Transaccion completada");
+
+        } catch (Exception error) {
+            resultado.setEstatusTrx("ERROR");
+            resultado.setMensajeTrx("Transaccion NO pudo ser procesada, servidor destino no existe" + error);
             System.out.println("usuario no existe " + error);
         }
         return resultado;
