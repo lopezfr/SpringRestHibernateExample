@@ -25,7 +25,7 @@ public class TrxOperadaDAO {
     //Recupera todas las transacciones hechas
     public List<TrxOperada> getAllTrxOperadas(){
         Session session = this.sessionFactory.getCurrentSession();
-        List<TrxOperada> trxOperadaList = session.createQuery("from trxoperada").list();
+        List<TrxOperada> trxOperadaList = session.createQuery("from TrxOperada").list();
         return trxOperadaList;
     }
 

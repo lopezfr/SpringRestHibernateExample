@@ -24,7 +24,7 @@ public class UsuarioDAO {
     //Recupera todos los usuarios
     public List<Usuario> getAllUsuarios(){
         Session session = this.sessionFactory.getCurrentSession();
-        List<Usuario> usuarioList = session.createQuery("from usuario").list();
+        List<Usuario> usuarioList = session.createQuery("from Usuario").list();
         return usuarioList;
     }
 
