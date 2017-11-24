@@ -29,6 +29,8 @@
 				<beans:value>com.umg.model.Transaccion</beans:value>
 				<beans:value>com.umg.model.ServidorDestino</beans:value>
 				<beans:value>com.umg.model.Usuario</beans:value>
+				<beans:value>com.umg.model.TrxOperada</beans:value>
+                <beans:value>com.umg.model.Resultado</beans:value>
 			</beans:list>
 		</beans:property>
 		<beans:property name="hibernateProperties">
