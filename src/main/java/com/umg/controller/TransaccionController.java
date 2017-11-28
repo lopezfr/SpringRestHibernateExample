@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import com.google.gson.Gson;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.WebResource;
+
+import javax.ws.rs.core.MediaType;
 
 /**
  * Created by carloscubur on 16/11/17.
@@ -67,16 +72,17 @@ public class TransaccionController {
             //Si las monedas son suficientes intenta enviar al servidor de colas
             if (usuario.getCoins() >= transaccion.getQuantity()) {
 
+                Transaccion trxMensaje = transaccionService.addTransaccion(transaccion);
+
                 //Convierte el JSON Objeto a una cadena de texto para enviar a la cola
                 //Convierte Objeto a String en formato JSON
                 Gson gson = new Gson();
-                String jsonInString = gson.toJson(transaccion);
+                String jsonInString = gson.toJson(trxMensaje);
                 System.out.println("Objeto JSON convertido a texto:   " + jsonInString);
                 EnviaMsjCola enviaMsjCola = new EnviaMsjCola();
                 boolean envio = enviaMsjCola.enviaMensajeaMQ(jsonInString);
                 //Si esta OK agregamos la transaccion a la BD
                 if (envio) {
-                    transaccionService.addTransaccion(transaccion);
                     //Actualiza la cantidad de monedas del usuario
                     System.out.println("Nueva cantidad de monedas: " + (usuario.getCoins() - transaccion.getQuantity()));
                     usuario.setCoins(usuario.getCoins() - transaccion.getQuantity());
@@ -113,7 +119,7 @@ public class TransaccionController {
         System.out.println("Recibiendo trx. valida");
         try {
             //Valida que servidor que trae el json exista en tabla de servidores
-            servidorDestino=servidorDestinoService.getServidorDestino(transaccion.getIdPlatformDestiny());
+            servidorDestino = servidorDestinoService.getServidorDestino(transaccion.getIdPlatformDestiny());
 
             //Graba la transaccion procesada
             //trxOperada.setIdTrxOperada(); este como es autoincrement no se envia
@@ -124,6 +130,80 @@ public class TransaccionController {
 
             resultado.setEstatusTrx("OK");
             resultado.setMensajeTrx("Transaccion completada");
+
+        } catch (Exception error) {
+            resultado.setEstatusTrx("ERROR");
+            resultado.setMensajeTrx("Transaccion NO pudo ser procesada, servidor destino no existe" + error);
+            System.out.println("usuario no existe " + error);
+        }
+        return resultado;
+    }
+
+    //Distribuye la trx al tomcat que debe de ser segun el archivo de servidores
+    @RequestMapping(value = "/distTrx", method = RequestMethod.POST, headers = "Accept=application/json")
+    public Resultado distTrx(@RequestBody Transaccion transaccion) {
+        //Prepara objeto a devolver con resultado
+        Resultado resultado = new Resultado();
+
+        //Prepara objeto para obtener datos de servidor
+        ServidorDestino servidorDestino;
+
+        try {
+            //Valida que servidor que trae el json exista en tabla de servidores
+            servidorDestino = servidorDestinoService.getServidorDestino(transaccion.getIdPlatformDestiny());
+
+            // enviar objeto transaccion.... a docker en el puerto 8080
+            Transaccion response = new Transaccion();
+
+            try {
+                Client client;
+                client = Client.create();
+                client.setConnectTimeout(10000);
+                client.setReadTimeout(60000);
+
+                //Envia un POST para distribuir
+                WebResource service = client
+                        .resource("http://"+servidorDestino.getServerip().trim()+":8080/SpringRestHibernateExample/processTransaccion");
+
+                Transaccion request = new Transaccion();
+
+                request.setIdTransaccion(transaccion.getIdTransaccion());
+                request.setIdUsuario(transaccion.getIdUsuario());
+                request.setIdCoin(transaccion.getIdCoin());
+                request.setIdPlatformOrigin(transaccion.getIdPlatformOrigin());
+                request.setIdPlatformDestiny(transaccion.getIdPlatformDestiny());
+                request.setIdProduct(transaccion.getIdProduct());
+                request.setMount(transaccion.getMount());
+                request.setQuantity(transaccion.getQuantity());
+
+                System.out.println("Objeto:");
+                System.out.println("idTransaccion     " + request.getIdTransaccion());
+                System.out.println("idUsuario         " + request.getIdUsuario());
+                System.out.println("idCoin            " + request.getIdCoin());
+                System.out.println("idPlatformOrigin  " + request.getIdPlatformOrigin());
+                System.out.println("idPlatformDestiny " + request.getIdPlatformDestiny());
+                System.out.println("idProduct         " + request.getIdProduct());
+                System.out.println("Mount             " + request.getMount());
+                System.out.println("Quantity          " + request.getQuantity());
+
+                response = service
+                        .type(MediaType.APPLICATION_JSON)
+                        .post(Transaccion.class, request);
+
+            } catch (
+                    Exception e
+                    )
+
+            {
+                e.printStackTrace();
+            }
+
+            if (response != null)
+
+            {
+                System.out.println("id:" + response.getIdTransaccion());
+            }
+
 
         } catch (Exception error) {
             resultado.setEstatusTrx("ERROR");

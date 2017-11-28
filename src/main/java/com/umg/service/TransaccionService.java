@@ -28,7 +28,7 @@ public class TransaccionService {
     }
 
     @Transactional
-    public void addTransaccion(Transaccion transaccion){transaccionDAO.addTransaccion(transaccion);}
+    public Transaccion addTransaccion(Transaccion transaccion){return transaccionDAO.addTransaccion(transaccion);}
 
     @Transactional
     public void updateTransaccion(Transaccion transaccion){transaccionDAO.updateTransaccion(transaccion);}
